@@ -107,6 +107,7 @@ func Init() {
 }
 
 func main() {
+    var i int64 = 0
     Init()
     for {
         if !read {
@@ -120,6 +121,7 @@ func main() {
             time.Sleep(time.Duration(sleep) * time.Second)
             disableWrite()
         } else {
+            i++
             for {
                 if !Writeable() {
                     break
@@ -128,8 +130,10 @@ func main() {
             }
             readSync()
             delSyncKey(nums)
-            time.Sleep(time.Duration(sleep) * time.Second)
+            time.Sleep(time.Duration(5) * time.Second)
             enableWrite()
+            fmt.Printf("第%d次接收数据，sleep等待del同步\n", i)
+            time.Sleep(time.Duration(sleep-5) * time.Second)
         }
     }
 }
