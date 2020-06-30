@@ -116,26 +116,34 @@ func local() {
     p50 := (l - 1) / 2
     p90 := ((l - 1) * 90) / 100
     p99 := ((l - 1) * 99) / 100
-    logLocal.Printf("n:%d 50:%d 90:%d 99:%d max:%d err:%d\n", l, localTimeString[p50], localTimeString[p90], localTimeString[p99], localTimeString[l-1], errString)
+    p39 := ((l - 1) * 999) / 1000
+    p49 := ((l - 1) * 9999) / 10000
+    logLocal.Printf("n:%d 50:%d 90:%d 99:%d 99.9:%d 99.99:%d max:%d err:%d\n", l, localTimeString[p50], localTimeString[p90], localTimeString[p99], localTimeString[p39], localTimeString[p49], localTimeString[l-1], errString)
 
     sort.Ints(localTimeHash)
     l = len(localTimeHash)
     p50 = (l - 1) / 2
     p90 = ((l - 1) * 90) / 100
     p99 = ((l - 1) * 99) / 100
-    logLocal.Printf("n:%d 50:%d 90:%d 99:%d max:%d err:%d\n", l, localTimeHash[p50], localTimeHash[p90], localTimeHash[p99], localTimeHash[l-1], errHash)
+    p39 = ((l - 1) * 999) / 1000
+    p49 = ((l - 1) * 9999) / 10000
+    logLocal.Printf("n:%d 50:%d 90:%d 99:%d 99.9:%d 99.99:%d max:%d err:%d\n", l, localTimeHash[p50], localTimeHash[p90], localTimeHash[p99], localTimeHash[p39], localTimeHash[p49], localTimeHash[l-1], errHash)
 
     sort.Ints(localTimeSet)
     l = len(localTimeSet)
     p50 = (l - 1) / 2
     p90 = ((l - 1) * 90) / 100
     p99 = ((l - 1) * 99) / 100
-    logLocal.Printf("n:%d 50:%d 90:%d 99:%d max:%d err:%d\n", l, localTimeSet[p50], localTimeSet[p90], localTimeSet[p99], localTimeSet[l-1], errSet)
+    p39 = ((l - 1) * 999) / 1000
+    p49 = ((l - 1) * 9999) / 10000
+    logLocal.Printf("n:%d 50:%d 90:%d 99:%d 99.9:%d 99.99:%d max:%d err:%d\n", l, localTimeSet[p50], localTimeSet[p90], localTimeSet[p99], localTimeSet[p39], localTimeSet[p49], localTimeSet[l-1], errSet)
 
     sort.Ints(localTimeList)
     l = len(localTimeList)
     p50 = (l - 1) / 2
     p90 = ((l - 1) * 90) / 100
     p99 = ((l - 1) * 99) / 100
-    logLocal.Printf("n:%d 50:%d 90:%d 99:%d max:%d err:%d\n", l, localTimeList[p50], localTimeList[p90], localTimeList[p99], localTimeList[l-1], errList)
+    p39 = ((l - 1) * 999) / 1000
+    p49 = ((l - 1) * 9999) / 10000
+    logLocal.Printf("n:%d 50:%d 90:%d 99:%d 99.9:%d 99.99:%d max:%d err:%d\n", l, localTimeList[p50], localTimeList[p90], localTimeList[p99], localTimeList[p39], localTimeList[p49], localTimeList[l-1], errList)
 }

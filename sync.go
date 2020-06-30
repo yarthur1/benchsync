@@ -108,28 +108,36 @@ func readSync() {
     p50 := (l - 1) / 2
     p90 := ((l - 1) * 90) / 100
     p99 := ((l - 1) * 99) / 100
-    logSync.Printf("n:%d 50:%d 90:%d 99:%d max:%d err:%d\n", l, syncTimeString[p50], syncTimeString[p90], syncTimeString[p99], syncTimeString[l-1], errStringSync)
+    p39 := ((l - 1) * 999) / 1000
+    p49 := ((l - 1) * 9999) / 10000
+    logSync.Printf("n:%d 50:%d 90:%d 99:%d 99.9:%d 99.99:%d max:%d err:%d\n", l, syncTimeString[p50], syncTimeString[p90], syncTimeString[p99], syncTimeString[p39], syncTimeString[p49], syncTimeString[l-1], errStringSync)
 
     sort.Ints(syncTimeHash)
     l = len(syncTimeHash)
     p50 = (l - 1) / 2
     p90 = ((l - 1) * 90) / 100
     p99 = ((l - 1) * 99) / 100
-    logSync.Printf("n:%d 50:%d 90:%d 99:%d max:%d err:%d\n", l, syncTimeHash[p50], syncTimeHash[p90], syncTimeHash[p99], syncTimeHash[l-1], errHashSync)
+    p39 = ((l - 1) * 999) / 1000
+    p49 = ((l - 1) * 9999) / 10000
+    logSync.Printf("n:%d 50:%d 90:%d 99:%d 99.9:%d 99.99:%d max:%d err:%d\n", l, syncTimeHash[p50], syncTimeHash[p90], syncTimeHash[p99], syncTimeHash[p39], syncTimeHash[p49], syncTimeHash[l-1], errHashSync)
 
     sort.Ints(syncTimeSet)
     l = len(syncTimeSet)
     p50 = (l - 1) / 2
     p90 = ((l - 1) * 90) / 100
     p99 = ((l - 1) * 99) / 100
-    logSync.Printf("n:%d 50:%d 90:%d 99:%d max:%d err:%d\n", l, syncTimeSet[p50], syncTimeSet[p90], syncTimeSet[p99], syncTimeSet[l-1], errSetSync)
+    p39 = ((l - 1) * 999) / 1000
+    p49 = ((l - 1) * 9999) / 10000
+    logSync.Printf("n:%d 50:%d 90:%d 99:%d 99.9:%d 99.99:%d max:%d err:%d\n", l, syncTimeSet[p50], syncTimeSet[p90], syncTimeSet[p99], syncTimeSet[p39], syncTimeSet[p49], syncTimeSet[l-1], errSetSync)
 
     sort.Ints(syncTimeList)
     l = len(syncTimeList)
     p50 = (l - 1) / 2
     p90 = ((l - 1) * 90) / 100
     p99 = ((l - 1) * 99) / 100
-    logSync.Printf("n:%d 50:%d 90:%d 99:%d max:%d err:%d\n", l, syncTimeList[p50], syncTimeList[p90], syncTimeList[p99], syncTimeList[l-1], errListSync)
+    p39 = ((l - 1) * 999) / 1000
+    p49 = ((l - 1) * 9999) / 10000
+    logSync.Printf("n:%d 50:%d 90:%d 99:%d 99.9:%d 99.99:%d max:%d err:%d\n", l, syncTimeList[p50], syncTimeList[p90], syncTimeList[p99], syncTimeList[p39], syncTimeList[p49], syncTimeList[l-1], errListSync)
 }
 
 func delSyncKey(n int) {
