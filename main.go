@@ -22,9 +22,14 @@ var logOrder *log.Logger
 var logLocal *log.Logger
 var logSync *log.Logger
 
-var urls []string = []string{"infra-codis-proxy-ibmams03-lb-1895889-ams03.clb.appdomain.cloud",
-    "infra-codis-proxy-ibmsng01-lb-1895889-sng01.clb.appdomain.cloud",
-    "infra-codis-proxy-ibmwdc04-lb-1895889-wdc04.clb.appdomain.cloud"}
+//var urls []string = []string{"infra-codis-proxy-ibmams03-lb-1895889-ams03.clb.appdomain.cloud",
+//    "infra-codis-proxy-ibmsng01-lb-1895889-sng01.clb.appdomain.cloud",
+//    "infra-codis-proxy-ibmwdc04-lb-1895889-wdc04.clb.appdomain.cloud"}
+
+var urls []string = []string{"10.136.138.130",
+    "10.64.240.213",
+    "10.148.78.81"}
+
 var url int
 var client *redis.Client
 
