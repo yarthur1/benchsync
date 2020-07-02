@@ -7,6 +7,7 @@ import (
     "log"
     "os"
     "path"
+    "runtime"
     "time"
 
     "github.com/go-redis/redis/v8"
@@ -31,6 +32,8 @@ var c *redis.Client //标志位
 var read bool       //读或写
 var nums int = 1000 //消息数
 var sleep int = 5   //等待 S
+var wch int = 4     //写并发
+var rch int = 16    //读并发
 
 func Writeable() bool { //key不存在 可写
     res, _ := c.Exists(context.Background(), "flag:key").Result()
@@ -61,8 +64,10 @@ func Init() {
     flag.IntVar(&url, "u", 0, "url,默认 0 ams 1 sng 2 wdc")
     flag.IntVar(&nums, "n", 1000, "各类型消息数,默认 1000")
     flag.IntVar(&sleep, "s", 5, "休眠,默认 5S")
+    flag.IntVar(&wch, "wc", 4, "写并发,默认 4")
+    flag.IntVar(&rch, "rc", 16, "读并发,默认 16")
     flag.Parse()
-    fmt.Printf("url=%v,read=%v, 消息数=%v, 休眠=%v \n", urls[url], read, nums, sleep)
+    fmt.Printf("url=%v,read=%v,消息数=%v,休眠=%v,写并发=%v,读并发=%v\n", urls[url], read, nums, sleep, wch, rch)
     client = redis.NewClient(&redis.Options{
         Addr:     urls[url] + ":19000",
         Password: "", // no password set
@@ -107,6 +112,7 @@ func Init() {
 }
 
 func main() {
+    runtime.GOMAXPROCS(runtime.NumCPU())
     var i int64 = 0
     Init()
     for {
@@ -115,7 +121,7 @@ func main() {
                 if Writeable() {
                     break
                 }
-                time.Sleep(5 * time.Second)
+                time.Sleep(3 * time.Second)
             }
             local()
             time.Sleep(time.Duration(sleep) * time.Second)
@@ -126,14 +132,14 @@ func main() {
                 if !Writeable() {
                     break
                 }
-                time.Sleep(5 * time.Second)
+                time.Sleep(3 * time.Second)
             }
             readSync()
             delSyncKey(nums)
-            time.Sleep(time.Duration(5) * time.Second)
+            time.Sleep(time.Duration(sleep) * time.Second)
             enableWrite()
             fmt.Printf("第%d次接收数据，sleep等待del同步\n", i)
-            time.Sleep(time.Duration(sleep-5) * time.Second)
+            time.Sleep(time.Duration(5) * time.Second)
         }
     }
 }

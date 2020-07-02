@@ -7,6 +7,7 @@ import (
     "strconv"
     "strings"
     "sync"
+    "sync/atomic"
 )
 
 var syncTimeString []int
@@ -14,7 +15,7 @@ var syncTimeHash []int
 var syncTimeSet []int
 var syncTimeList []int
 
-var errStringSync int
+var errStringSync int32
 var errHashSync int
 var errSetSync int
 var errListSync int
@@ -26,18 +27,39 @@ func getFunc(n int, wg *sync.WaitGroup) {
 
     syncTimeString = make([]int, 0, n)
     errStringSync = 0
+
+    var w sync.WaitGroup
+    var mu sync.Mutex
+    ch := make(chan struct{}, rch)
+    w.Add(n)
+
     for i := 0; i < n; i++ {
-        key := fmt.Sprintf(BENCHMARK_STRING_KEY, i)
-        res, err := client.Get(context.Background(), key).Result()
-        if err != nil {
-            errStringSync++
-            continue
-        }
-        split := strings.Split(res, "\t")
-        start, _ := strconv.ParseInt(split[0], 10, 64)
-        end, _ := strconv.ParseInt(split[1], 10, 64)
-        syncTimeString = append(syncTimeString, int((end-start)/1e6))
+        ch <- struct{}{}
+        go getRoutine(i, &mu, ch, &w)
     }
+    w.Wait()
+}
+
+func getRoutine(i int, m *sync.Mutex, ch chan struct{}, w *sync.WaitGroup){
+    defer func() {
+        <- ch
+        w.Done()
+    }()
+
+    key := fmt.Sprintf(BENCHMARK_STRING_KEY, i)
+    res, err := client.Get(context.Background(), key).Result()
+    if err != nil {
+        atomic.AddInt32(&errStringSync, 1)
+        return
+    }
+    split := strings.Split(res, "\t")
+    start, _ := strconv.ParseInt(split[0], 10, 64)
+    end, _ := strconv.ParseInt(split[1], 10, 64)
+    t := int((end-start)/1e6)
+
+    m.Lock()
+    syncTimeString = append(syncTimeString, t)
+    m.Unlock()
 }
 
 func hgetallFunc(n int, wg *sync.WaitGroup) {
@@ -141,11 +163,27 @@ func readSync() {
 }
 
 func delSyncKey(n int) {
+    var w sync.WaitGroup
+    ch := make(chan struct{}, rch)
+    w.Add(n)
+
     for i := 0; i < n; i++ {
-        key := fmt.Sprintf(BENCHMARK_STRING_KEY, i)
-        client.Del(context.Background(), key).Result()
+        ch <- struct{}{}
+        go delRoutine(i, ch, &w)
     }
+
     client.Del(context.Background(), BENCHMARK_HASH_KEY).Result()
     client.Del(context.Background(), BENCHMARK_SET_KEY).Result()
     client.Del(context.Background(), BENCHMARK_LIST_KEY).Result()
+    w.Wait()
+}
+
+func delRoutine(i int, ch chan struct{}, w *sync.WaitGroup){
+    defer func() {
+        <- ch
+        w.Done()
+    }()
+
+    key := fmt.Sprintf(BENCHMARK_STRING_KEY, i)
+    client.Del(context.Background(), key).Result()
 }

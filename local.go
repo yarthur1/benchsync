@@ -6,6 +6,7 @@ import (
     "sort"
     "strconv"
     "sync"
+    "sync/atomic"
     "time"
 )
 
@@ -21,10 +22,10 @@ var localTimeHash []int
 var localTimeSet []int
 var localTimeList []int
 
-var errString int
-var errHash int
-var errSet int
-var errList int
+var errString int32
+var errHash int32
+var errSet int32
+var errList int32
 
 func setFunc(n int, wg *sync.WaitGroup) {
     defer func() {
@@ -33,15 +34,35 @@ func setFunc(n int, wg *sync.WaitGroup) {
 
     localTimeString = make([]int, 0, n)
     errString = 0
+
+    var w sync.WaitGroup
+    var mu sync.Mutex
+    ch := make(chan struct{}, wch)
+    w.Add(n)
+
     for i := 0; i < n; i++ {
-        key := fmt.Sprintf(BENCHMARK_STRING_KEY, i)
-        start := time.Now()
-        _, err := client.Set(context.Background(), key, strconv.FormatInt(start.UnixNano(), 10), 0).Result()
-        t := int(time.Since(start) / 1e6)
-        localTimeString = append(localTimeString, t)
-        if err != nil {
-            errString++
-        }
+        ch <- struct{}{}
+        go setRoutine(i, &mu, ch, &w)
+    }
+    w.Wait()
+}
+
+func setRoutine(i int, m *sync.Mutex, ch chan struct{}, w *sync.WaitGroup){
+    defer func() {
+        <- ch
+        w.Done()
+    }()
+
+    key := fmt.Sprintf(BENCHMARK_STRING_KEY, i)
+    start := time.Now()
+    _, err := client.Set(context.Background(), key, strconv.FormatInt(start.UnixNano(), 10), 0).Result()
+    t := int(time.Since(start) / 1e6)
+
+    m.Lock()
+    localTimeString = append(localTimeString, t)
+    m.Unlock()
+    if err != nil {
+        atomic.AddInt32(&errString, 1)
     }
 }
 
@@ -52,15 +73,35 @@ func hmsetFunc(n int, wg *sync.WaitGroup) {
 
     localTimeHash = make([]int, 0, n)
     errHash = 0
+
+    var w sync.WaitGroup
+    var mu sync.Mutex
+    ch := make(chan struct{}, wch)
+    w.Add(n)
+
     for i := 0; i < n; i++ {
-        key := BENCHMARK_HASH_KEY
-        start := time.Now()
-        _, err := client.HMSet(context.Background(), key, i, strconv.FormatInt(start.UnixNano(), 10)).Result()
-        t := int(time.Since(start) / 1e6)
-        localTimeHash = append(localTimeHash, t)
-        if err != nil {
-            errHash++
-        }
+        ch <- struct{}{}
+        go hsetRoutine(i, &mu, ch, &w)
+    }
+    w.Wait()
+}
+
+func hsetRoutine(i int, m *sync.Mutex, ch chan struct{}, w *sync.WaitGroup){
+    defer func() {
+        <- ch
+        w.Done()
+    }()
+
+    key := BENCHMARK_HASH_KEY
+    start := time.Now()
+    _, err := client.HMSet(context.Background(), key, i, strconv.FormatInt(start.UnixNano(), 10)).Result()
+    t := int(time.Since(start) / 1e6)
+
+    m.Lock()
+    localTimeHash = append(localTimeHash, t)
+    m.Unlock()
+    if err != nil {
+        atomic.AddInt32(&errHash, 1)
     }
 }
 
@@ -71,15 +112,35 @@ func lpushFunc(n int, wg *sync.WaitGroup) {
 
     localTimeList = make([]int, 0, n)
     errList = 0
+
+    var w sync.WaitGroup
+    var mu sync.Mutex
+    ch := make(chan struct{}, wch)
+    w.Add(n)
+
     for i := 0; i < n; i++ {
-        key := BENCHMARK_LIST_KEY
-        start := time.Now()
-        _, err := client.LPush(context.Background(), key, strconv.FormatInt(start.UnixNano(), 10)).Result()
-        t := int(time.Since(start) / 1e6)
-        localTimeList = append(localTimeList, t)
-        if err != nil {
-            errList++
-        }
+        ch <- struct{}{}
+        go lpushRoutine(i, &mu, ch, &w)
+    }
+    w.Wait()
+}
+
+func lpushRoutine(i int, m *sync.Mutex, ch chan struct{}, w *sync.WaitGroup){
+    defer func() {
+        <- ch
+        w.Done()
+    }()
+
+    key := BENCHMARK_LIST_KEY
+    start := time.Now()
+    _, err := client.LPush(context.Background(), key, strconv.FormatInt(start.UnixNano(), 10)).Result()
+    t := int(time.Since(start) / 1e6)
+
+    m.Lock()
+    localTimeList = append(localTimeList, t)
+    m.Unlock()
+    if err != nil {
+        atomic.AddInt32(&errList, 1)
     }
 }
 
@@ -90,15 +151,35 @@ func saddFunc(n int, wg *sync.WaitGroup) {
 
     localTimeSet = make([]int, 0, n)
     errSet = 0
+
+    var w sync.WaitGroup
+    var mu sync.Mutex
+    ch := make(chan struct{}, wch)
+    w.Add(n)
+
     for i := 0; i < n; i++ {
-        key := BENCHMARK_SET_KEY
-        start := time.Now()
-        _, err := client.SAdd(context.Background(), key, strconv.FormatInt(start.UnixNano(), 10)).Result()
-        t := int(time.Since(start) / 1e6)
-        localTimeSet = append(localTimeSet, t)
-        if err != nil {
-            errSet++
-        }
+        ch <- struct{}{}
+        go saddRoutine(i, &mu, ch, &w)
+    }
+    w.Wait()
+}
+
+func saddRoutine(i int, m *sync.Mutex, ch chan struct{}, w *sync.WaitGroup){
+    defer func() {
+        <- ch
+        w.Done()
+    }()
+
+    key := BENCHMARK_SET_KEY
+    start := time.Now()
+    _, err := client.SAdd(context.Background(), key, strconv.FormatInt(start.UnixNano(), 10)).Result()
+    t := int(time.Since(start) / 1e6)
+
+    m.Lock()
+    localTimeSet = append(localTimeSet, t)
+    m.Unlock()
+    if err != nil {
+        atomic.AddInt32(&errSet, 1)
     }
 }
 
