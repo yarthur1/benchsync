@@ -47,9 +47,9 @@ func setFunc(n int, wg *sync.WaitGroup) {
     w.Wait()
 }
 
-func setRoutine(i int, m *sync.Mutex, ch chan struct{}, w *sync.WaitGroup){
+func setRoutine(i int, m *sync.Mutex, ch chan struct{}, w *sync.WaitGroup) {
     defer func() {
-        <- ch
+        <-ch
         w.Done()
     }()
 
@@ -86,9 +86,9 @@ func hmsetFunc(n int, wg *sync.WaitGroup) {
     w.Wait()
 }
 
-func hsetRoutine(i int, m *sync.Mutex, ch chan struct{}, w *sync.WaitGroup){
+func hsetRoutine(i int, m *sync.Mutex, ch chan struct{}, w *sync.WaitGroup) {
     defer func() {
-        <- ch
+        <-ch
         w.Done()
     }()
 
@@ -125,9 +125,9 @@ func lpushFunc(n int, wg *sync.WaitGroup) {
     w.Wait()
 }
 
-func lpushRoutine(i int, m *sync.Mutex, ch chan struct{}, w *sync.WaitGroup){
+func lpushRoutine(i int, m *sync.Mutex, ch chan struct{}, w *sync.WaitGroup) {
     defer func() {
-        <- ch
+        <-ch
         w.Done()
     }()
 
@@ -164,9 +164,9 @@ func saddFunc(n int, wg *sync.WaitGroup) {
     w.Wait()
 }
 
-func saddRoutine(i int, m *sync.Mutex, ch chan struct{}, w *sync.WaitGroup){
+func saddRoutine(i int, m *sync.Mutex, ch chan struct{}, w *sync.WaitGroup) {
     defer func() {
-        <- ch
+        <-ch
         w.Done()
     }()
 

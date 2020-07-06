@@ -17,18 +17,24 @@ import (
 const ORDER string = "/data/benchsync/order.log"
 const LOCAL string = "/data/benchsync/local.log"
 const SYNC string = "/data/benchsync/sync.log"
+const LOCAL_SYNC_KEY string = "flag:key"
+const LOCAL_SYNC_DEL_FLAG string = "flag:delkey"
 
 var logOrder *log.Logger
 var logLocal *log.Logger
 var logSync *log.Logger
 
 var urlsLB []string = []string{"infra-codis-proxy-ibmams03-lb-1895889-ams03.clb.appdomain.cloud",
-   "infra-codis-proxy-ibmsng01-lb-1895889-sng01.clb.appdomain.cloud",
-   "infra-codis-proxy-ibmwdc04-lb-1895889-wdc04.clb.appdomain.cloud"}
+    "infra-codis-proxy-ibmsng01-lb-1895889-sng01.clb.appdomain.cloud",
+    "infra-codis-proxy-ibmwdc04-lb-1895889-wdc04.clb.appdomain.cloud"}
 
 var urls []string = []string{"10.136.138.130",
     "10.64.240.213",
     "10.148.78.81"}
+
+var urls2 []string = []string{"10.136.138.152",
+    "10.64.240.212",
+    "10.148.78.107"}
 
 var keys []string = []string{"ams:benchmark:test:qps:string:%d",
     "sng:benchmark:test:qps:string:%d",
@@ -37,33 +43,67 @@ var keys []string = []string{"ams:benchmark:test:qps:string:%d",
 var url int
 var client *redis.Client
 
-var c *redis.Client  //标志位
-var read bool        //读或写
-var nums int = 1000  //消息数
-var sleep int = 5    //等待 S
-var wch int = 4      //写并发
-var rch int = 16     //读并发
-var testType int = 0 //0 延时 1 压力&顺序
+var c *redis.Client   //标志位
+var read bool         //读或写
+var nums int = 1000   //消息数
+var sleep int = 5     //等待 S
+var wch int = 4       //写并发
+var rch int = 16      //读并发
+var testType int = 0  //0 延时 1 压力 2顺序
 var orderType int = 0 //有序性测试  0 读 1 写
+var proxy int = 1     //direct proxy num
+var lb int = 1        //default use lb
+
+func waitDelSync() { //key为2  continue
+    for {
+        r, _ := c.Get(context.Background(), LOCAL_SYNC_DEL_FLAG).Result()
+        if r == "2" {
+            break
+        }
+        time.Sleep(1 * time.Second)
+    }
+}
+
+func setDelFlag() {
+    c.Incr(context.Background(), LOCAL_SYNC_DEL_FLAG).Result()
+}
+
+func unSetDelFlag() {
+    c.Del(context.Background(), LOCAL_SYNC_DEL_FLAG).Result()
+}
 
 func Writeable() bool { //key不存在 可写
-    res, _ := c.Exists(context.Background(), "flag:key").Result()
+    res, _ := c.Exists(context.Background(), LOCAL_SYNC_KEY).Result()
     if res == 0 {
+        return true
+    }
+    r, _ := c.Get(context.Background(), LOCAL_SYNC_KEY).Result()
+    if r == "0" {
         return true
     }
     return false
 }
 
-func enableWrite() bool {
-    res, _ := c.Del(context.Background(), "flag:key").Result()
-    if res == 1 {
+func waitSync() { //key为0  continue
+    for {
+        r, _ := c.Get(context.Background(), LOCAL_SYNC_KEY).Result()
+        if r == "0" {
+            break
+        }
+        time.Sleep(1 * time.Second)
+    }
+}
+
+func readFlagSet() bool {
+    res, _ := c.Decr(context.Background(), LOCAL_SYNC_KEY).Result()
+    if res >= 0 { //返回减后的数字
         return true
     }
     return false
 }
 
 func disableWrite() bool {
-    _, err := c.Set(context.Background(), "flag:key", "true", 0).Result()
+    _, err := c.Set(context.Background(), LOCAL_SYNC_KEY, "2", 0).Result()
     if err != nil {
         return false
     }
@@ -71,7 +111,7 @@ func disableWrite() bool {
 }
 
 func Init() {
-    flag.IntVar(&testType, "t", 0, "测试类型,默认延时  0 延时 1 压力&顺序")
+    flag.IntVar(&testType, "t", 0, "测试类型,默认延时  0 延时 1 压力 2 顺序")
     flag.IntVar(&orderType, "o", 0, "有序性测试,默认读  0 读 1 写")
     flag.BoolVar(&read, "r", true, "默认读Redis")
     flag.IntVar(&url, "u", 0, "url,默认 0 ams 1 sng 2 wdc")
@@ -79,13 +119,21 @@ func Init() {
     flag.IntVar(&sleep, "s", 5, "休眠,默认 5S")
     flag.IntVar(&wch, "wc", 4, "写并发,默认 4")
     flag.IntVar(&rch, "rc", 16, "读并发,默认 16")
+    flag.IntVar(&lb, "l", 1, "default use lb")
+    flag.IntVar(&proxy, "p", 1, "direct proxy num, 默认 proxy 1")
     flag.Parse()
 
-    var urlStr string = urls[url]
-    if testType != 0{
-        urlStr = urlsLB[url]
+    var urlStr string = urlsLB[url]
+    if lb == 0 {
+        switch proxy {
+        case 1:
+            urlStr = urls[url]
+        case 2:
+            urlStr = urls2[url]
+        }
     }
-    fmt.Printf("type=%v,url=%v,read=%v,消息数=%v,休眠=%v,写并发=%v,读并发=%v\n", testType, urls[url], read, nums, sleep, wch, rch)
+
+    fmt.Printf("type=%v,url=%v,read=%v,消息数=%v,休眠=%v,写并发=%v,读并发=%v\n", testType, urlStr, read, nums, sleep, wch, rch)
     client = redis.NewClient(&redis.Options{
         Addr:     urlStr + ":19000",
         Password: "", // no password set
@@ -134,46 +182,70 @@ func main() {
     var i int64 = 0
     Init()
     for {
-        switch testType{
-            case 0:
-                if !read {
-                    for {
-                        if Writeable() {
-                            break
-                        }
-                        time.Sleep(3 * time.Second)
+        i++
+        switch testType {
+        case 0:
+            if !read {
+                for {
+                    if Writeable() {
+                        break
                     }
-                    local()
-                    time.Sleep(time.Duration(sleep) * time.Second)
-                    disableWrite()
-                } else {
-                    i++
-                    for {
-                        if !Writeable() {
-                            break
-                        }
-                        time.Sleep(3 * time.Second)
-                    }
-                    readSync()
-                    delSyncKey(nums)
-                    time.Sleep(time.Duration(sleep) * time.Second)
-                    enableWrite()
-                    fmt.Printf("第%d次接收数据，sleep等待del同步\n", i)
-                    time.Sleep(time.Duration(5) * time.Second)
+                    time.Sleep(3 * time.Second)
                 }
-            case 1:
-                benchSetFunc(nums)
-                //if orderType==0{
-                //    for {
-                //        if !orderWriteable() {
-                //            break
-                //        }
-                //        time.Sleep(3 * time.Second)
-                //    }
-                //
-                //}else{
-                //
-                //}
+
+                local()
+                time.Sleep(time.Duration(sleep) * time.Second)
+                disableWrite()
+                fmt.Printf("第%d次发送数据，sleep 10S to wait whether stop\n", i)
+                time.Sleep(10 * time.Second)
+            } else {
+                for {
+                    if !Writeable() {
+                        break
+                    }
+                    time.Sleep(3 * time.Second)
+                }
+                readSync()
+                setDelFlag()
+                waitDelSync()
+                unSetDelFlag()
+                time.Sleep(3 * time.Second)
+
+                delSyncKey(nums)
+                time.Sleep(time.Duration(sleep) * time.Second)
+                setDelFlag()
+                waitDelSync()
+                unSetDelFlag()
+
+                readFlagSet()
+                waitSync()
+            }
+        case 1:
+            benchSetFunc(nums)
+        case 2:
+            if orderType == 0 {
+                for {
+                    if orderReadable() {
+                        break
+                    }
+                    time.Sleep(3 * time.Second)
+                }
+                OrderBenchRead()
+                orderReadFlagSet()
+                waitReadSync()
+            } else {
+                for {
+                    if orderWriteable() {
+                        break
+                    }
+                    time.Sleep(3 * time.Second)
+                }
+                OrderBenchWrite()
+                time.Sleep(time.Duration(sleep) * time.Second)
+                disableOrderWrite()
+                fmt.Printf("第%d次发送数据，sleep 10S to wait whether stop\n", i)
+                time.Sleep(10 * time.Second)
+            }
         }
     }
 }

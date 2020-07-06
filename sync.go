@@ -40,9 +40,9 @@ func getFunc(n int, wg *sync.WaitGroup) {
     w.Wait()
 }
 
-func getRoutine(i int, m *sync.Mutex, ch chan struct{}, w *sync.WaitGroup){
+func getRoutine(i int, m *sync.Mutex, ch chan struct{}, w *sync.WaitGroup) {
     defer func() {
-        <- ch
+        <-ch
         w.Done()
     }()
 
@@ -55,7 +55,7 @@ func getRoutine(i int, m *sync.Mutex, ch chan struct{}, w *sync.WaitGroup){
     split := strings.Split(res, "\t")
     start, _ := strconv.ParseInt(split[0], 10, 64)
     end, _ := strconv.ParseInt(split[1], 10, 64)
-    t := int((end-start)/1e6)
+    t := int((end - start) / 1e6)
 
     m.Lock()
     syncTimeString = append(syncTimeString, t)
@@ -178,9 +178,9 @@ func delSyncKey(n int) {
     w.Wait()
 }
 
-func delRoutine(i int, ch chan struct{}, w *sync.WaitGroup){
+func delRoutine(i int, ch chan struct{}, w *sync.WaitGroup) {
     defer func() {
-        <- ch
+        <-ch
         w.Done()
     }()
 
