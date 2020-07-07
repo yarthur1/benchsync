@@ -61,7 +61,7 @@ func waitDelSync() { //key为2  continue
         if r == "2" {
             break
         }
-        time.Sleep(1 * time.Second)
+        time.Sleep(100 * time.Millisecond)
     }
 }
 
@@ -91,7 +91,7 @@ func waitSync() { //key为0  continue
         if r == "0" {
             break
         }
-        time.Sleep(1 * time.Second)
+        time.Sleep(100 * time.Millisecond)
     }
 }
 
@@ -212,12 +212,14 @@ func main() {
                 readSync()
                 setDelFlag()
                 waitDelSync()
+                time.Sleep(5 * time.Second) //一定要保证删除之前wait break
                 unSetDelFlag()
 
                 delSyncKey(nums)
                 time.Sleep(time.Duration(sleep) * time.Second)
                 readFlagSet()
                 waitSync()
+                fmt.Printf("第%v次read done\n", i)
             }
         case 1:
             benchSetFunc(nums)
@@ -232,11 +234,14 @@ func main() {
                 OrderBenchRead()
                 syncSet("yxj:order:read:wait")
                 syncWait("yxj:order:read:wait")
-                syncUnSet("yxj:order:read:wait")
+                fmt.Printf("第%v次wait break\n", i)
+                time.Sleep(5 * time.Second)
+                syncUnSet("yxj:order:read:wait") //一定要保证删除之前wait break
 
                 OrderBenchDel()
                 orderReadFlagSet()
                 waitReadSync()
+                fmt.Printf("第%v次read done\n", i)
             } else {
                 for {
                     if orderWriteable() {

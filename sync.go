@@ -189,13 +189,13 @@ func delRoutine(i int, ch chan struct{}, w *sync.WaitGroup) {
     client.Del(context.Background(), key).Result()
 }
 
-func syncWait(key string) { //key为2  no wait
+func syncWait(key string) { // 时间粒度为1S时会出现一台把flag删了,另一台还在wait flag
     for {
         r, _ := c.Get(context.Background(), key).Result()
         if r == "2" {
             break
         }
-        time.Sleep(1 * time.Second)
+        time.Sleep(100 * time.Millisecond)
     }
 }
 

@@ -63,7 +63,7 @@ func waitReadSync() { //key为0  continue
         if r == "0" {
             break
         }
-        time.Sleep(1 * time.Second)
+        time.Sleep(100 * time.Millisecond)
     }
 }
 
