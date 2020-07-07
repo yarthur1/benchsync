@@ -53,6 +53,7 @@ var testType int = 0  //0 延时 1 压力 2顺序
 var orderType int = 0 //有序性测试  0 读 1 写
 var proxy int = 1     //direct proxy num
 var lb int = 1        //default use lb
+var pool int = 40     //default connection pool size
 
 func waitDelSync() { //key为2  continue
     for {
@@ -72,7 +73,7 @@ func unSetDelFlag() {
     c.Del(context.Background(), LOCAL_SYNC_DEL_FLAG).Result()
 }
 
-func Writeable() bool { //key不存在 可写
+func Writeable() bool { //key不存在 0 可写
     res, _ := c.Exists(context.Background(), LOCAL_SYNC_KEY).Result()
     if res == 0 {
         return true
@@ -121,6 +122,7 @@ func Init() {
     flag.IntVar(&rch, "rc", 16, "读并发,默认 16")
     flag.IntVar(&lb, "l", 1, "default use lb")
     flag.IntVar(&proxy, "p", 1, "direct proxy num, 默认 proxy 1")
+    flag.IntVar(&pool, "a", 40, "alive max session(default connection pool size)")
     flag.Parse()
 
     var urlStr string = urlsLB[url]
@@ -133,11 +135,13 @@ func Init() {
         }
     }
 
-    fmt.Printf("type=%v,url=%v,read=%v,消息数=%v,休眠=%v,写并发=%v,读并发=%v\n", testType, urlStr, read, nums, sleep, wch, rch)
+    fmt.Printf("type=%v,url=%v,read=%v,消息数=%v,休眠=%v,写并发=%v,读并发=%v,CPU:%v,pool:%v\n", testType, urlStr, read, nums, sleep, wch, rch, runtime.NumCPU(), pool)
     client = redis.NewClient(&redis.Options{
-        Addr:     urlStr + ":19000",
-        Password: "", // no password set
-        DB:       0,  // use default DB
+        Addr:         urlStr + ":19000",
+        Password:     "", // no password set
+        DB:           0,  // use default DB
+        PoolSize:     pool,
+        MinIdleConns: pool,
     })
     c = redis.NewClient(&redis.Options{
         Addr:     "10.64.240.246:6479",
@@ -223,7 +227,7 @@ func main() {
         case 1:
             benchSetFunc(nums)
         case 2:
-            if orderType == 0 {
+            if orderType == 0 { //顺序测试  读
                 for {
                     if orderReadable() {
                         break
