@@ -8,8 +8,8 @@ import (
     "time"
 )
 
-const FLAG_ORDER string = "flag_order"
-const KEY_ORDER string = "order_key"
+const FLAG_ORDER string = "yxj:flag:order"
+const KEY_ORDER string = "yxj:order:key"
 
 func benchSetFunc(n int) {
     var w sync.WaitGroup

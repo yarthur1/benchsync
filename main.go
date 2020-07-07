@@ -17,8 +17,8 @@ import (
 const ORDER string = "/data/benchsync/order.log"
 const LOCAL string = "/data/benchsync/local.log"
 const SYNC string = "/data/benchsync/sync.log"
-const LOCAL_SYNC_KEY string = "flag:key"
-const LOCAL_SYNC_DEL_FLAG string = "flag:delkey"
+const LOCAL_SYNC_KEY string = "yxj:local:flag"
+const LOCAL_SYNC_DEL_FLAG string = "yxj:flag:delkey"
 
 var logOrder *log.Logger
 var logLocal *log.Logger
@@ -230,9 +230,9 @@ func main() {
                     time.Sleep(3 * time.Second)
                 }
                 OrderBenchRead()
-                syncSet("order_read_wait")
-                syncWait("order_read_wait")
-                syncUnSet("order_read_wait")
+                syncSet("yxj:order:read:wait")
+                syncWait("yxj:order:read:wait")
+                syncUnSet("yxj:order:read:wait")
 
                 OrderBenchDel()
                 orderReadFlagSet()
