@@ -8,6 +8,7 @@ import (
     "strings"
     "sync"
     "sync/atomic"
+    "time"
 )
 
 var syncTimeString []int
@@ -186,4 +187,22 @@ func delRoutine(i int, ch chan struct{}, w *sync.WaitGroup) {
 
     key := fmt.Sprintf(BENCHMARK_STRING_KEY, i)
     client.Del(context.Background(), key).Result()
+}
+
+func syncWait(key string) { //key为2  no wait
+    for {
+        r, _ := c.Get(context.Background(), key).Result()
+        if r == "2" {
+            break
+        }
+        time.Sleep(1 * time.Second)
+    }
+}
+
+func syncSet(key string) {
+    c.Incr(context.Background(), key).Result()
+}
+
+func syncUnSet(key string) {
+    c.Del(context.Background(), key).Result()
 }

@@ -112,3 +112,10 @@ func OrderBenchRead() {
         logOrder.Printf("OrderBench test failed,result:%s\n", res)
     }
 }
+
+func OrderBenchDel() {
+    _, err := client.Del(context.Background(), KEY_ORDER).Result()
+    if err != nil {
+        logOrder.Printf("OrderBenchDel failed, err:%v\n", err)
+    }
+}

@@ -213,14 +213,9 @@ func main() {
                 setDelFlag()
                 waitDelSync()
                 unSetDelFlag()
-                time.Sleep(3 * time.Second)
 
                 delSyncKey(nums)
                 time.Sleep(time.Duration(sleep) * time.Second)
-                setDelFlag()
-                waitDelSync()
-                unSetDelFlag()
-
                 readFlagSet()
                 waitSync()
             }
@@ -235,6 +230,11 @@ func main() {
                     time.Sleep(3 * time.Second)
                 }
                 OrderBenchRead()
+                syncSet("order_read_wait")
+                syncWait("order_read_wait")
+                syncUnSet("order_read_wait")
+
+                OrderBenchDel()
                 orderReadFlagSet()
                 waitReadSync()
             } else {
