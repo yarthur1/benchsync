@@ -48,6 +48,7 @@ func getRoutine(i int, m *sync.Mutex, ch chan struct{}, w *sync.WaitGroup) {
     }()
 
     key := fmt.Sprintf(BENCHMARK_STRING_KEY, i)
+    key = keyGen(key)
     res, err := client.Get(context.Background(), key).Result()
     if err != nil {
         atomic.AddInt32(&errStringSync, 1)
@@ -71,6 +72,7 @@ func hgetallFunc(n int, wg *sync.WaitGroup) {
     syncTimeHash = make([]int, 0, n)
     errHashSync = 0
     key := BENCHMARK_HASH_KEY
+    key = keyGen(key)
     res, _ := client.HGetAll(context.Background(), key).Result()
     for _, v := range res {
         split := strings.Split(v, "\t")
@@ -89,6 +91,7 @@ func lrangeFunc(n int, wg *sync.WaitGroup) {
     syncTimeList = make([]int, 0, n)
     errListSync = 0
     key := BENCHMARK_LIST_KEY
+    key = keyGen(key)
     res, _ := client.LRange(context.Background(), key, 0, -1).Result()
     for _, v := range res {
         split := strings.Split(v, "\t")
@@ -107,6 +110,7 @@ func smemberFunc(n int, wg *sync.WaitGroup) {
     syncTimeSet = make([]int, 0, n)
     errSetSync = 0
     key := BENCHMARK_SET_KEY
+    key = keyGen(key)
     res, _ := client.SMembers(context.Background(), key).Result()
     for _, v := range res {
         split := strings.Split(v, "\t")
@@ -125,6 +129,11 @@ func readSync() {
     go lrangeFunc(nums, &wg)
     go smemberFunc(nums, &wg)
     wg.Wait()
+
+    if len(syncTimeString) == 0 || len(syncTimeHash) == 0 ||
+            len(syncTimeSet) == 0 || len(syncTimeList) == 0 {
+        return
+    }
 
     sort.Ints(syncTimeString)
     l := len(syncTimeString)
@@ -173,9 +182,9 @@ func delSyncKey(n int) {
         go delRoutine(i, ch, &w)
     }
 
-    client.Del(context.Background(), BENCHMARK_HASH_KEY).Result()
-    client.Del(context.Background(), BENCHMARK_SET_KEY).Result()
-    client.Del(context.Background(), BENCHMARK_LIST_KEY).Result()
+    client.Del(context.Background(), keyGen(BENCHMARK_HASH_KEY)).Result()
+    client.Del(context.Background(), keyGen(BENCHMARK_SET_KEY)).Result()
+    client.Del(context.Background(), keyGen(BENCHMARK_LIST_KEY)).Result()
     w.Wait()
 }
 
@@ -186,6 +195,7 @@ func delRoutine(i int, ch chan struct{}, w *sync.WaitGroup) {
     }()
 
     key := fmt.Sprintf(BENCHMARK_STRING_KEY, i)
+    key = keyGen(key)
     client.Del(context.Background(), key).Result()
 }
 

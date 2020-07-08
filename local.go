@@ -54,6 +54,7 @@ func setRoutine(i int, m *sync.Mutex, ch chan struct{}, w *sync.WaitGroup) {
     }()
 
     key := fmt.Sprintf(BENCHMARK_STRING_KEY, i)
+    key = keyGen(key)
     start := time.Now()
     _, err := client.Set(context.Background(), key, strconv.FormatInt(start.UnixNano(), 10), 0).Result()
     t := int(time.Since(start) / 1e6)
@@ -93,6 +94,7 @@ func hsetRoutine(i int, m *sync.Mutex, ch chan struct{}, w *sync.WaitGroup) {
     }()
 
     key := BENCHMARK_HASH_KEY
+    key = keyGen(key)
     start := time.Now()
     _, err := client.HMSet(context.Background(), key, i, strconv.FormatInt(start.UnixNano(), 10)).Result()
     t := int(time.Since(start) / 1e6)
@@ -132,6 +134,7 @@ func lpushRoutine(i int, m *sync.Mutex, ch chan struct{}, w *sync.WaitGroup) {
     }()
 
     key := BENCHMARK_LIST_KEY
+    key = keyGen(key)
     start := time.Now()
     _, err := client.LPush(context.Background(), key, strconv.FormatInt(start.UnixNano(), 10)).Result()
     t := int(time.Since(start) / 1e6)
@@ -171,6 +174,7 @@ func saddRoutine(i int, m *sync.Mutex, ch chan struct{}, w *sync.WaitGroup) {
     }()
 
     key := BENCHMARK_SET_KEY
+    key = keyGen(key)
     start := time.Now()
     _, err := client.SAdd(context.Background(), key, strconv.FormatInt(start.UnixNano(), 10)).Result()
     t := int(time.Since(start) / 1e6)
@@ -191,6 +195,11 @@ func local() {
     go lpushFunc(nums, &wg)
     go saddFunc(nums, &wg)
     wg.Wait()
+
+    if len(localTimeString) == 0 || len(localTimeHash) == 0 ||
+            len(localTimeSet) == 0 || len(localTimeList) == 0 {
+        return
+    }
 
     sort.Ints(localTimeString)
     l := len(localTimeString)

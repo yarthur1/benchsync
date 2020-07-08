@@ -10,6 +10,7 @@ import (
 
 const FLAG_ORDER string = "yxj:flag:order"
 const KEY_ORDER string = "yxj:order:key"
+const ORDER_WAIT_FLAG string = "yxj:order:read:wait"
 
 func benchSetFunc(n int) {
     var w sync.WaitGroup
@@ -34,11 +35,11 @@ func benchSetRoutine(i int, ch chan struct{}, w *sync.WaitGroup) {
 }
 
 func orderWriteable() bool { //key不存在或为0  可写
-    res, _ := c.Exists(context.Background(), FLAG_ORDER).Result()
+    res, _ := c.Exists(context.Background(), keyGen(FLAG_ORDER)).Result()
     if res == 0 {
         return true
     }
-    r, _ := c.Get(context.Background(), FLAG_ORDER).Result()
+    r, _ := c.Get(context.Background(), keyGen(FLAG_ORDER)).Result()
     if r == "0" {
         return true
     }
@@ -46,11 +47,11 @@ func orderWriteable() bool { //key不存在或为0  可写
 }
 
 func orderReadable() bool { //key为1,2  可读
-    res, _ := c.Exists(context.Background(), FLAG_ORDER).Result()
+    res, _ := c.Exists(context.Background(), keyGen(FLAG_ORDER)).Result()
     if res == 0 {
         return false
     }
-    r, _ := c.Get(context.Background(), FLAG_ORDER).Result()
+    r, _ := c.Get(context.Background(), keyGen(FLAG_ORDER)).Result()
     if r == "1" || r == "2" {
         return true
     }
@@ -59,7 +60,7 @@ func orderReadable() bool { //key为1,2  可读
 
 func waitReadSync() { //key为0  continue
     for {
-        r, _ := c.Get(context.Background(), FLAG_ORDER).Result()
+        r, _ := c.Get(context.Background(), keyGen(FLAG_ORDER)).Result()
         if r == "0" {
             break
         }
@@ -68,7 +69,7 @@ func waitReadSync() { //key为0  continue
 }
 
 func orderReadFlagSet() bool {
-    res, _ := c.Decr(context.Background(), FLAG_ORDER).Result()
+    res, _ := c.Decr(context.Background(), keyGen(FLAG_ORDER)).Result()
     if res >= 0 { //返回减后的数字
         return true
     }
@@ -76,7 +77,7 @@ func orderReadFlagSet() bool {
 }
 
 func disableOrderWrite() bool {
-    _, err := c.Set(context.Background(), FLAG_ORDER, "2", 0).Result()
+    _, err := c.Set(context.Background(), keyGen(FLAG_ORDER), "2", 0).Result()
     if err != nil {
         return false
     }
@@ -87,7 +88,7 @@ func OrderBenchWrite() {
     conn := client.Conn(context.Background())
     for i := 0; i < nums; i++ {
         tmp := strconv.Itoa(i)
-        _, err := conn.Append(context.Background(), KEY_ORDER, tmp).Result()
+        _, err := conn.Append(context.Background(), keyGen(KEY_ORDER), tmp).Result()
         if err != nil {
             logOrder.Printf("OrderBenchWrite failed, err:%v\n", err)
             break
@@ -96,7 +97,7 @@ func OrderBenchWrite() {
 }
 
 func OrderBenchRead() {
-    res, err := client.Get(context.Background(), KEY_ORDER).Result()
+    res, err := client.Get(context.Background(), keyGen(KEY_ORDER)).Result()
     if err != nil {
         logOrder.Printf("Read redis failed, err:%v\n", err)
         return
@@ -114,8 +115,21 @@ func OrderBenchRead() {
 }
 
 func OrderBenchDel() {
-    _, err := client.Del(context.Background(), KEY_ORDER).Result()
+    _, err := client.Del(context.Background(), keyGen(KEY_ORDER)).Result()
     if err != nil {
         logOrder.Printf("OrderBenchDel failed, err:%v\n", err)
     }
+}
+
+func keyGen(key string) string{
+    var str string=""
+    switch master{
+    case 0:
+        str= "ams:"+key
+    case 1:
+        str= "sng:"+key
+    case 2:
+        str= "wdc:"+key
+    }
+    return str
 }

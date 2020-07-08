@@ -56,10 +56,11 @@ var proxy int = 1     //direct proxy num
 var lb int = 1        //default use lb
 var pool int = 40     //default connection pool size
 var timeout int = 0   //-1  no timeout
+var master int = 0   //0 ams 1 sng 2 wdc
 
 func waitDelSync() { //key为2  continue
     for {
-        r, _ := c.Get(context.Background(), LOCAL_SYNC_DEL_FLAG).Result()
+        r, _ := c.Get(context.Background(), keyGen(LOCAL_SYNC_DEL_FLAG)).Result()
         if r == "2" {
             break
         }
@@ -68,19 +69,19 @@ func waitDelSync() { //key为2  continue
 }
 
 func setDelFlag() {
-    c.Incr(context.Background(), LOCAL_SYNC_DEL_FLAG).Result()
+    c.Incr(context.Background(), keyGen(LOCAL_SYNC_DEL_FLAG)).Result()
 }
 
 func unSetDelFlag() {
-    c.Del(context.Background(), LOCAL_SYNC_DEL_FLAG).Result()
+    c.Del(context.Background(), keyGen(LOCAL_SYNC_DEL_FLAG)).Result()
 }
 
 func Writeable() bool { //key不存在 0 可写
-    res, _ := c.Exists(context.Background(), LOCAL_SYNC_KEY).Result()
+    res, _ := c.Exists(context.Background(), keyGen(LOCAL_SYNC_KEY)).Result()
     if res == 0 {
         return true
     }
-    r, _ := c.Get(context.Background(), LOCAL_SYNC_KEY).Result()
+    r, _ := c.Get(context.Background(), keyGen(LOCAL_SYNC_KEY)).Result()
     if r == "0" {
         return true
     }
@@ -89,7 +90,7 @@ func Writeable() bool { //key不存在 0 可写
 
 func waitSync() { //key为0  continue
     for {
-        r, _ := c.Get(context.Background(), LOCAL_SYNC_KEY).Result()
+        r, _ := c.Get(context.Background(), keyGen(LOCAL_SYNC_KEY)).Result()
         if r == "0" {
             break
         }
@@ -98,7 +99,7 @@ func waitSync() { //key为0  continue
 }
 
 func readFlagSet() bool {
-    res, _ := c.Decr(context.Background(), LOCAL_SYNC_KEY).Result()
+    res, _ := c.Decr(context.Background(), keyGen(LOCAL_SYNC_KEY)).Result()
     if res >= 0 { //返回减后的数字
         return true
     }
@@ -106,7 +107,7 @@ func readFlagSet() bool {
 }
 
 func disableWrite() bool {
-    _, err := c.Set(context.Background(), LOCAL_SYNC_KEY, "2", 0).Result()
+    _, err := c.Set(context.Background(), keyGen(LOCAL_SYNC_KEY), "2", 0).Result()
     if err != nil {
         return false
     }
@@ -129,6 +130,7 @@ func Init() {
     flag.StringVar(&ORDER, "fo", "/data/benchsync/order.log", "order file name")
     flag.StringVar(&LOCAL, "fl", "/data/benchsync/local.log", "local file name")
     flag.StringVar(&SYNC, "fs", "/data/benchsync/sync.log", "sync file name")
+    flag.IntVar(&master, "m", 0, "哪个集群写，flag key不同")
     flag.Parse()
 
     var urlStr string = urlsLB[url]
@@ -204,7 +206,7 @@ func main() {
                     if Writeable() {
                         break
                     }
-                    time.Sleep(3 * time.Second)
+                    time.Sleep(1 * time.Second)
                 }
 
                 local()
@@ -217,7 +219,7 @@ func main() {
                     if !Writeable() {
                         break
                     }
-                    time.Sleep(3 * time.Second)
+                    time.Sleep(1 * time.Second)
                 }
                 readSync()
                 setDelFlag()
@@ -239,14 +241,14 @@ func main() {
                     if orderReadable() {
                         break
                     }
-                    time.Sleep(3 * time.Second)
+                    time.Sleep(1 * time.Second)
                 }
                 OrderBenchRead()
-                syncSet("yxj:order:read:wait")
-                syncWait("yxj:order:read:wait")
+                syncSet(keyGen(ORDER_WAIT_FLAG))
+                syncWait(keyGen(ORDER_WAIT_FLAG))
                 fmt.Printf("第%v次wait break\n", i)
                 time.Sleep(5 * time.Second)
-                syncUnSet("yxj:order:read:wait") //一定要保证删除之前wait break
+                syncUnSet(keyGen(ORDER_WAIT_FLAG)) //一定要保证删除之前wait break
 
                 OrderBenchDel()
                 orderReadFlagSet()
@@ -257,7 +259,7 @@ func main() {
                     if orderWriteable() {
                         break
                     }
-                    time.Sleep(3 * time.Second)
+                    time.Sleep(1 * time.Second)
                 }
                 OrderBenchWrite()
                 time.Sleep(time.Duration(sleep) * time.Second)
