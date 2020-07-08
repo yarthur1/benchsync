@@ -14,9 +14,10 @@ import (
     "github.com/natefinch/lumberjack"
 )
 
-const ORDER string = "/data/benchsync/order.log"
-const LOCAL string = "/data/benchsync/local.log"
-const SYNC string = "/data/benchsync/sync.log"
+var ORDER string = "/data/benchsync/order.log"
+var LOCAL string = "/data/benchsync/local.log"
+var SYNC string = "/data/benchsync/sync.log"
+
 const LOCAL_SYNC_KEY string = "yxj:local:flag"
 const LOCAL_SYNC_DEL_FLAG string = "yxj:flag:delkey"
 
@@ -54,6 +55,7 @@ var orderType int = 0 //有序性测试  0 读 1 写
 var proxy int = 1     //direct proxy num
 var lb int = 1        //default use lb
 var pool int = 40     //default connection pool size
+var timeout int = 0   //-1  no timeout
 
 func waitDelSync() { //key为2  continue
     for {
@@ -123,6 +125,10 @@ func Init() {
     flag.IntVar(&lb, "l", 1, "default use lb")
     flag.IntVar(&proxy, "p", 1, "direct proxy num, 默认 proxy 1")
     flag.IntVar(&pool, "a", 40, "alive max session(default connection pool size)")
+    flag.IntVar(&timeout, "e", 0, "redis pool read timeout")
+    flag.StringVar(&ORDER, "fo", "/data/benchsync/order.log", "order file name")
+    flag.StringVar(&LOCAL, "fl", "/data/benchsync/local.log", "local file name")
+    flag.StringVar(&SYNC, "fs", "/data/benchsync/sync.log", "sync file name")
     flag.Parse()
 
     var urlStr string = urlsLB[url]
@@ -135,13 +141,15 @@ func Init() {
         }
     }
 
-    fmt.Printf("type=%v,url=%v,read=%v,消息数=%v,休眠=%v,写并发=%v,读并发=%v,CPU:%v,pool:%v\n", testType, urlStr, read, nums, sleep, wch, rch, runtime.NumCPU(), pool)
+    fmt.Printf("type=%v,url=%v,read=%v,消息数=%v,休眠=%v,写并发=%v,读并发=%v,CPU:%v,pool:%v,timeout:%v\n", testType, urlStr, read, nums, sleep, wch, rch, runtime.NumCPU(), pool, timeout)
+    fmt.Printf("order file=%v,local file=%v,sync file=%v\n", ORDER, LOCAL, SYNC)
     client = redis.NewClient(&redis.Options{
         Addr:         urlStr + ":19000",
         Password:     "", // no password set
         DB:           0,  // use default DB
         PoolSize:     pool,
         MinIdleConns: pool,
+        ReadTimeout:  time.Duration(timeout),
     })
     c = redis.NewClient(&redis.Options{
         Addr:     "10.64.240.246:6479",
@@ -150,6 +158,8 @@ func Init() {
     })
 
     os.MkdirAll(path.Dir(ORDER), 0755)
+    os.MkdirAll(path.Dir(LOCAL), 0755)
+    os.MkdirAll(path.Dir(SYNC), 0755)
     hook := &lumberjack.Logger{
         Filename:   ORDER, //filePath
         MaxSize:    50,    // megabytes
