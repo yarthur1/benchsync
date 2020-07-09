@@ -133,3 +133,13 @@ func keyGen(key string) string{
     }
     return str
 }
+
+func detailPrint(res []int) {
+    l := len(res)
+    delta := colums
+    i := 0
+    for ; i+delta <= l-1; i = i + delta {
+        logDetail.Printf("%v\n", res[i:i+delta])
+    }
+    logDetail.Printf("%v\n", res[i:])
+}

@@ -170,6 +170,17 @@ func readSync() {
     p39 = ((l - 1) * 999) / 1000
     p49 = ((l - 1) * 9999) / 10000
     logSync.Printf("n:%d 50:%d 90:%d 99:%d 99.9:%d 99.99:%d max:%d err:%d\n", l, syncTimeList[p50], syncTimeList[p90], syncTimeList[p99], syncTimeList[p39], syncTimeList[p49], syncTimeList[l-1], errListSync)
+
+    if detail_on {
+        logDetail.Printf("********* string 远程同步耗时详细数据\n")
+        detailPrint(syncTimeString)
+        logDetail.Printf("********* hash 远程同步耗时详细数据\n")
+        detailPrint(syncTimeHash)
+        logDetail.Printf("********* set 远程同步耗时详细数据\n")
+        detailPrint(syncTimeSet)
+        logDetail.Printf("********* list 远程同步耗时详细数据\n")
+        detailPrint(syncTimeList)
+    }
 }
 
 func delSyncKey(n int) {

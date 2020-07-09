@@ -236,4 +236,15 @@ func local() {
     p39 = ((l - 1) * 999) / 1000
     p49 = ((l - 1) * 9999) / 10000
     logLocal.Printf("n:%d 50:%d 90:%d 99:%d 99.9:%d 99.99:%d max:%d err:%d\n", l, localTimeList[p50], localTimeList[p90], localTimeList[p99], localTimeList[p39], localTimeList[p49], localTimeList[l-1], errList)
+
+    if detail_on{
+        logDetail.Printf("********* string 本地发送耗时详细数据\n")
+        detailPrint(localTimeString)
+        logDetail.Printf("********* hash 本地发送耗时详细数据\n")
+        detailPrint(localTimeHash)
+        logDetail.Printf("********* set 本地发送耗时详细数据\n")
+        detailPrint(localTimeSet)
+        logDetail.Printf("********* list 本地发送耗时详细数据\n")
+        detailPrint(localTimeList)
+    }
 }

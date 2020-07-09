@@ -17,6 +17,9 @@ import (
 var ORDER string = "/data/benchsync/order.log"
 var LOCAL string = "/data/benchsync/local.log"
 var SYNC string = "/data/benchsync/sync.log"
+var DETAIL string = "/data/benchsync/detail.log"
+var detail_on bool = false
+var colums int = 10000
 
 const LOCAL_SYNC_KEY string = "yxj:local:flag"
 const LOCAL_SYNC_DEL_FLAG string = "yxj:flag:delkey"
@@ -24,6 +27,7 @@ const LOCAL_SYNC_DEL_FLAG string = "yxj:flag:delkey"
 var logOrder *log.Logger
 var logLocal *log.Logger
 var logSync *log.Logger
+var logDetail *log.Logger
 
 var urlsLB []string = []string{"infra-codis-proxy-ibmams03-lb-1895889-ams03.clb.appdomain.cloud",
     "infra-codis-proxy-ibmsng01-lb-1895889-sng01.clb.appdomain.cloud",
@@ -130,6 +134,9 @@ func Init() {
     flag.StringVar(&ORDER, "fo", "/data/benchsync/order.log", "order file name")
     flag.StringVar(&LOCAL, "fl", "/data/benchsync/local.log", "local file name")
     flag.StringVar(&SYNC, "fs", "/data/benchsync/sync.log", "sync file name")
+    flag.StringVar(&DETAIL, "d", "/data/benchsync/detail.log", "detail file name")
+    flag.BoolVar(&detail_on, "do", false, "detail log on or off")
+    flag.IntVar(&colums, "c", 10000, "detail 每行的列数")
     flag.IntVar(&master, "m", 0, "哪个集群写，flag key不同")
     flag.Parse()
 
@@ -191,6 +198,15 @@ func Init() {
     }
     defer hookSync.Close()
     logSync = log.New(hookSync, "", log.LstdFlags)
+
+    hookDetail := &lumberjack.Logger{
+        Filename:   DETAIL, //filePath
+        MaxSize:    50,   // megabytes
+        MaxBackups: 1,
+        MaxAge:     30,    //days
+        Compress:   false, // disabled by default
+    }
+    logDetail = log.New(hookDetail, "", log.LstdFlags)
 }
 
 func main() {
