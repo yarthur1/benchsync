@@ -86,6 +86,7 @@ func disableOrderWrite() bool {
 
 func OrderBenchWrite() {
     conn := client.Conn(context.Background())
+    defer conn.Close()
     for i := 0; i < nums; i++ {
         tmp := strconv.Itoa(i)
         _, err := conn.Append(context.Background(), keyGen(KEY_ORDER), tmp).Result()
